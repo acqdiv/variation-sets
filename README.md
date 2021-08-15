@@ -16,6 +16,6 @@ The **Text_simulation** subdirectory covers the generation (`randomize_texts.Rmd
 The **Analysis** subdirectory contains the all code for the statistical analyses. See `analysis.Rmd`.  
 
 **4. Results**    
-The **Results** subdirectory stores the plots and model summaries that are reported in the manuscript.
+The **Results** subdirectory stores the plots and model summaries that are reported in the manuscript. All model summaries are labeled using the model object names from the `analysis.Rmd` file.
 
 
