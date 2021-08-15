@@ -1,0 +1,9 @@
+Estimate	Std. Error	df	t value	Pr(>|t|)
+(Intercept)	-2.946	0.143	5.976	-20.67	0
+randomrandom	-0.093	0.109	136.092	-0.855	0.394
+WordEnt.scaled	0.14	0.043	138.671	3.221	0.002
+window_size	0.182	0.003	1090.611	56.916	0
+mean.nv.lens.words.scaled	0.102	0.157	137.517	0.651	0.516
+number.of.utterances.scaled	0.007	0.112	137.601	0.061	0.951
+number.of.speakers.scaled	0.021	0.136	137.811	0.155	0.877
+randomrandom:WordEnt.scaled	-0.404	0.051	137.144	-7.938	0

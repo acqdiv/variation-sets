@@ -1,0 +1,28 @@
+---
+title: "extract_headers"
+author: "Nicholas A. Lester"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Code to extract headers from Rmarkdown file
+```{r library}
+library(mindr)
+```
+
+# Define file path
+```{r file_path}
+path = "/Users/nicholas/Documents/Projects/ACQDIV/VariationSets/Cognition/second_revision/Analysis/"
+```
+
+# Extract headers
+```{r extract_headers}
+outline = outline(path = path, remove_curly_bracket = TRUE)
+```
+
+# Write the headers
+```{r write_headers}
+cat(outline, file = "./headers.txt", sep="\n")
+```

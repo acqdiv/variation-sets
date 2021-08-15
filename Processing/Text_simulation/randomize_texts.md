@@ -1,0 +1,426 @@
+Nicholas Lester
+
+## Text simulation
+
+This file contains code to randomize CSS and ADS speech and extract *n*
+utterances (where *n* = number of utterances per session in the original
+corpus) of length equal to the *MLU* of the session (rounding up).
+
+**Clear memory**
+
+``` r
+rm(list = ls(all = T))
+```
+
+**Libraries**
+
+``` r
+library(dplyr)
+```
+
+**Load data**
+
+``` r
+# Define langauge sub-groups
+## Word-level data
+word.langs = c("Chintang", "English_Manchester1", "Inuktitut", "Japanese_MiiPro", "Russian", "Sesotho", "Turkish", "Yucatec")
+
+## Morpheme-level data
+morph.langs = c("Chintang", "Inuktitut", "Russian", "Sesotho", "Turkish", "Yucatec")
+
+# Load session-level annotations from "processing_revised" file
+load("../../Data/Public/modeling_data.Rdata")
+
+mlus = final.dataset %>% 
+       select(corpus, session_id, mean.nv.lens.words, mean.nv.lens.morphs, number.of.utterances) %>%
+       rename(session_id_fk = session_id) %>%
+       mutate(mean.utt.len.word = ceiling(mean.nv.lens.words),
+              mean.utt.len.morph = ceiling(mean.nv.lens.morphs)) %>%
+       distinct() %>%
+       as.data.frame()
+  
+# Load ACQDIV
+acqdiv = load("../../Data/Private/acqdiv_data.Rdata")
+css.words = words; rm(words)
+css.speakers = speakers; rm(speakers)
+rm(all_data)
+
+## Extract target child information
+target.children = css.speakers %>% 
+                  select(macrorole, session_id_fk, uniquespeaker_id_fk) %>%
+                  filter(macrorole == "Target_Child") %>%
+                  distinct() %>%
+                  as.data.frame()
+
+css.speakers = css.speakers %>%
+               filter(macrorole == "Adult")
+
+css.utterances = utterances; rm(utterances)
+css.morphemes = morphemes; rm(morphemes)
+css.sessions = sessions; rm(sessions)
+
+# Load adult data
+load("../../Data/Private/ads.acqdiv.format.Rdata")
+```
+
+**Add additional columns**  
+We now combine the data so that we have mean utterance lengths (in nouns
+and verbs) for each session (words and morphemes).
+
+CSS
+
+``` r
+# CSS data
+## Word-level data
+css.words = css.words %>%
+            filter(corpus %in% word.langs) %>%
+            merge(., css.utterances[, c("utterance_id", "session_id_fk", "uniquespeaker_id_fk")], by.x = c("session_id_fk", "utterance_id_fk"), by.y = c("session_id_fk", "utterance_id")) %>%
+            arrange(session_id_fk, utterance_id_fk, word_id) %>%
+            left_join(., css.speakers[, c("corpus", "session_id_fk", "uniquespeaker_id_fk", "macrorole")] %>% distinct(), by = c("corpus", "session_id_fk", "uniquespeaker_id_fk")) %>%
+            merge(., mlus[, c(1:2, 5:7)], by.x = c("corpus", "session_id_fk"),
+                                          by.y = c("corpus", "session_id_fk")) %>%
+            arrange(corpus, session_id_fk, utterance_id_fk, word_id) %>%
+            filter(macrorole == "Adult") %>%
+            distinct() %>%
+            as.data.frame()
+
+## Morpheme-level data
+css.morphemes = css.morphemes %>%
+                filter(corpus %in% morph.langs) %>%
+                merge(., css.utterances[, c("utterance_id", "session_id_fk", "uniquespeaker_id_fk")], by.x = c("session_id_fk", "utterance_id_fk"), by.y = c("session_id_fk", "utterance_id")) %>%
+                arrange(session_id_fk, utterance_id_fk, morpheme_id) %>%
+                left_join(., css.speakers[, c("corpus", "session_id_fk", "uniquespeaker_id_fk", "macrorole")] %>% distinct(), by = c("corpus", "session_id_fk", "uniquespeaker_id_fk")) %>%
+                merge(., mlus[, c(1:2, 5:7)], by.x = c("corpus", "session_id_fk"),
+                                          by.y = c("corpus", "session_id_fk")) %>%
+                arrange(corpus, session_id_fk, utterance_id_fk, morpheme_id) %>%
+                filter(macrorole == "Adult") %>%
+                distinct() %>%
+                as.data.frame()
+```
+
+ADS
+
+``` r
+## English
+words.ads.eng  = words.ads.eng %>%
+                 merge(., utterances.ads.eng[, c("utterance_id", "session_id_fk", "uniquespeaker_id_fk")], by.x = c("session_id_fk", "utterance_id_fk"), 
+                         by.y = c("session_id_fk", "utterance_id")) %>%
+                 arrange(session_id_fk, utterance_id_fk, word_id) %>%
+                 left_join(., speakers.ads.eng[, c("uniquespeaker_id_fk", "macrorole")] %>%
+                             distinct(), by = "uniquespeaker_id_fk") %>%
+                 merge(., mlus[, c(1:2, 5:7)], by = c("corpus", "session_id_fk")) %>%
+                 arrange(corpus, session_id_fk, utterance_id_fk, word_id) %>%
+                 mutate(macrorole = rep("Adult", nrow(.))) %>%
+                 distinct() %>%
+                 as.data.frame()
+
+## Chintang
+words.ads.cnt  = words.ads.cnt %>%
+                 merge(., utterances.ads.cnt[, c("utterance_id", "session_id_fk", "uniquespeaker_id_fk")], by.x = c("session_id_fk", "utterance_id_fk"), 
+                         by.y = c("session_id_fk", "utterance_id")) %>%
+                 arrange(session_id_fk, utterance_id_fk, word_id) %>%
+                 left_join(., speakers.ads.cnt[, c("uniquespeaker_id_fk", "macrorole")] %>%
+                             distinct(), by = "uniquespeaker_id_fk") %>%
+                 merge(., mlus[, c(1:2, 5:7)], by = c("corpus", "session_id_fk")) %>%
+                 arrange(corpus, session_id_fk, utterance_id_fk, word_id) %>%
+                 mutate(macrorole = rep("Adult", nrow(.))) %>%
+                 distinct() %>%
+                 as.data.frame()
+```
+
+**Randomize texts**
+
+``` r
+random.text = function(df, level.of.analysis, css = T){
+    session.list = list()
+    i = 1
+    if(level.of.analysis == "word"){
+        df = df[!is.na(df$mean.utt.len.word),]
+        target.pos = c("NOUN", "VERB")
+        df = df %>% filter(pos_word_ud %in% target.pos)
+        df$mean.utt.len = df$mean.utt.len.word
+    }
+    else{
+        df = df[!is.na(df$mean.utt.len.morph),]
+        target.pos = c("N", "V")
+        df = df %>% filter(pos %in% target.pos)
+        df$mean.utt.len = df$mean.utt.len.morph
+    }
+    if(css){
+        out.df = left_join(df, target.children[,2:3] %>% 
+                               rename(target.child = uniquespeaker_id_fk), 
+                           by = c("session_id_fk")) %>%
+              group_by(target.child, session_id_fk) %>%
+              sample_n(unique(mean.utt.len)*unique(number.of.utterances), replace=T) %>%
+              group_by(target.child, session_id_fk) %>%
+              mutate(utterance_id_fk_rand = rep(seq(1, unique(number.of.utterances)), each=unique(mean.utt.len))) %>%
+              as.data.frame()
+    }
+    else{
+        out.df = df %>%
+                 mutate(target.child = rep(NA, nrow(.))) %>%
+                 group_by(session_id_fk) %>%
+                 sample_n(unique(mean.utt.len)*unique(number.of.utterances), replace=T) %>%
+                 group_by(session_id_fk) %>%
+                 mutate(utterance_id_fk_rand = rep(seq(1, unique(number.of.utterances)), each=unique(mean.utt.len))) %>%
+        as.data.frame()
+    }
+    return(out.df)
+}
+    
+# Function to generate new utterance table from random table
+utterance.tbl = function(df.words, df.morphemes=css.morphemes, adult=F){
+    utt.df = df.words %>%
+             group_by(corpus, session_id_fk, uniquespeaker_id_fk, utterance_id_fk) %>%
+             summarize(utterance_id = utterance_id_fk %>% unique(),
+                       utterance_id_source = NA,
+                       speaker_id_fk = uniquespeaker_id_fk %>% unique(),
+                       language = corpus %>% unique(),
+                       speaker_label = NA,
+                       addressee = NA,
+                       utterance_raw = paste(word, collapse = " "),
+                       utterance = paste(word, collapse = " "),
+                       translation = NA,
+                       utterance_gloses_raw = NA,
+                       utterance_poses_raw = paste(pos_word_ud, collapse = " "),
+                       sentence_type = NA,
+                       childdirected = NA,
+                       start = NA,
+                       end = NA, 
+                       start_raw = NA,
+                       end_raw = NA,
+                       comment = NA,
+                       warning = NA) %>%
+            ungroup()
+    if(adult){
+        morph = utt.df %>%
+                group_by(corpus, session_id_fk, uniquespeaker_id_fk, utterance_id_fk) %>%
+                summarize(utterance_morphemes = NA)
+    }
+    else{
+        morph =  df.morphemes %>%
+                 group_by(corpus, session_id_fk, uniquespeaker_id_fk, utterance_id_fk) %>%
+                 summarize(utterance_morphemes = paste(morpheme, collapse = " "))
+    }
+    utt.df = left_join(utt.df, morph, by = c("corpus", "session_id_fk", "uniquespeaker_id_fk", "utterance_id_fk")) %>%
+         ungroup()
+    
+    utt.df = utt.df %>%
+             select(colnames(css.utterances)) %>%
+             arrange(corpus, utterance_id) %>%
+             as.data.frame()
+    return(utt.df)
+}
+```
+
+**Generate random texts**
+
+``` r
+words = random.text(css.words, "word")
+morphemes = random.text(css.morphemes, "morpheme")
+words.ads.eng = random.text(words.ads.eng, "word", F)
+words.ads.cnt = random.text(words.ads.cnt, "word", F)
+```
+
+**Save texts**
+
+``` r
+save(words, morphemes, words.ads.eng, words.ads.cnt, file = "../../Data/Private/random_texts.Rdata")
+write.table(words, file="../../Data/Private/words_css_random.txt", row.names=F, quote=F, sep="\t")
+write.table(morphemes, file="../../Data/Private/morphemes_css_random.txt", row.names=F, quote=F, sep="\t")
+write.table(words.ads.eng, file="../../Data/Private/words_ads_english_random.txt", row.names=F, quote=F, sep="\t")
+write.table(words.ads.cnt, file="../../Data/Private/words_ads_chintang_random.txt", row.names=F, quote=F, sep="\t")
+```
+
+**Miscellaneous or old code**
+
+``` r
+## Chintang
+#### Add the columns necessary to make the data compatible with the ACQDIV database
+###### Words
+cnt.ads.words = words; rm(words)
+cnt.ads.words = cnt.ads.words %>%
+                merge(., utterances %>% 
+                         select(id, session_id_fk) %>%
+                         distinct(), 
+                      by.x = "utterance_id_fk", by.y = "id") %>% 
+                rename(word_id = id,
+                       pos_word_stem = pos,
+                       pos_word_ud = pos_ud) %>%
+                mutate(corpus = rep("Chintang_Adult", nrow(.)),
+                       language = rep("Chintang", nrow(.)),
+                       word_language = rep(NA, nrow(.)),
+                       warning = rep(NA, nrow(.))) %>%
+                select(colnames(css.words)) %>%
+                as.data.frame()
+
+###### Speakers
+cnt.ads.speakers = speakers; rm(speakers)
+cnt.ads.speakers = cnt.ads.speakers %>%
+                   rename(speaker_id = id) %>%
+                   mutate(corpus = rep("Chintang_Adult", nrow(.)),
+                          language = rep("Chintang", nrow(.)),
+                          speaker_label = rep(NA, nrow(.)),
+                          name = rep(NA, nrow(.)),
+                          gender_raw = rep(NA, nrow(.)),
+                          gender = rep(NA, nrow(.)),
+                          birthdate = rep(NA, nrow(.))) %>%
+                   select(colnames(css.speakers)) %>%
+                   as.data.frame()
+
+###### Utterances  
+cnt.ads.utterances = utterances; rm(utterances)
+cnt.ads.utterances = cnt.ads.utterances %>%
+                     rename(utterance_id = id,
+                            utterance_id_source = source_id,
+                            uniquespeaker_id_fk = speaker_id_fk,
+                            addressee = addressee_id_fk,
+                            utterance_morphemes = morpheme,
+                            utterance_gloses_raw = gloss_raw,
+                            utterance_poses_raw = pos_raw) %>%
+                     mutate(speaker_id_fk = uniquespeaker_id_fk,
+                            corpus = rep("Chintang_Adult", nrow(.)),
+                            language = rep("Chintang", nrow(.)),
+                            speaker_label = rep(NA, nrow(.)),
+                            warning = rep(NA, nrow(.))) %>%
+                     select(colnames(css.utterances)) %>%
+                     as.data.frame()
+
+
+## English
+load("../../../revision_for_pub/Data/ADS/English/Public/bnc_data.Rdata")
+eng.ads.words = words; rm(words)
+eng.ads.words = eng.ads.words %>%
+                mutate(word_target = rep(NA, nrow(.)),
+                       corpus = rep("English_Adult", nrow(.))) %>%
+                select(colnames(css.words)) %>%
+                as.data.frame()
+
+eng.ads.speakers = speakers; rm(speakers)
+eng.ads.speakers = eng.ads.speakers %>%
+                   mutate(uniquespeaker_id_fk = speaker_label,
+                          corpus = rep("English_Adult", nrow(.))) %>%
+                   select(colnames(css.speakers)) %>%
+                   as.data.frame()
+
+eng.ads.utterances = utterances %>%
+                     select(colnames(css.utterances)) %>%
+                     mutate(corpus = rep("English_Adult", nrow(.))) %>%
+                     as.data.frame()
+
+#### Mean n/v lengths by morpheme
+mean.nv.len.morph = css.morph %>%
+                    filter(pos %in% c("N", "V")) %>%
+                    group_by(corpus, session_id_fk, utterance_id_fk) %>%
+                    summarize(nv.len.morph = n()) %>%
+                    group_by(corpus, session_id_fk) %>%
+                    summarize(utt.len.morph = ceiling(mean(nv.len.morph)))
+
+css.morph = css.morph %>%
+            left_join(., mean.nv.len.morph, by=c("corpus", "session_id_fk"))
+
+# Function to sample utterances of length "len.utts" for "n.utts" number of utterances per "session"
+sampler = function(df, n.utts, len.utts, session){
+    utt.list = list()
+    df = df %>% filter(session_id_fk == session)
+    for(i in 1:n.utts){
+        utt.inds = sample(1:nrow(df), len.utts)
+        curr.df = df[utt.inds, ]
+        curr.df$session_id_fk = rep(session, len.utts)
+        curr.df$utterance_id_fk = rep(paste0(i, "_random"), len.utts)
+        utt.list[[i]] = curr.df
+    }
+    out.df = do.call(rbind, utt.list)
+    out.df$random.unit.index = seq(1, nrow(out.df))
+    return(out.df)
+}
+
+# Function to apply the sampler to word-level or morpheme-level data
+random.text = function(df, level.of.analysis, css = T){
+    session.list = list()
+    i = 1
+    if(level.of.analysis == "word"){
+        df = df[!is.na(df$mean.utt.len.word),]
+        target.pos = c("NOUN", "VERB")
+        df = df %>% filter(pos_word_ud %in% target.pos)
+        df$mean.utt.len = df$mean.utt.len.word
+    }
+    else{
+        df = df[!is.na(df$mean.utt.len.morph),]
+        target.pos = c("N", "V")
+        df = df %>% filter(pos %in% target.pos)
+        df$mean.utt.len = df$mean.utt.len.morph
+    }
+    if(css){
+        df = left_join(df, 
+                       target.children[,2:3] %>% 
+                          rename(target.child = uniquespeaker_id_fk), 
+                      by = c("session_id_fk"))
+        for(child in unique(df$target.child)){
+             curr.df = df %>% filter(target.child == child)
+             for(session in unique(curr.df$session_id_fk)){
+                 num.utts = unique(curr.df$number.of.utterances[curr.df$session_id_fk == session])
+                 mean.utt.lens = unique(curr.df$mean.utt.len[curr.df$session_id_fk == session])
+                 curr.sample = sampler(curr.df, num.utts, mean.utt.lens, session)
+                 session.list[[i]] = curr.sample
+            }
+        }
+    }
+    else{
+        curr.df = df
+        curr.df$target.child = rep(NA, nrow(curr.df))
+        for(session in unique(curr.df$session_id_fk)){
+                 num.utts = unique(curr.df$number.of.utterances[curr.df$session_id_fk == session])
+                 mean.utt.lens = unique(curr.df$mean.utt.len[curr.df$session_id_fk == session])
+                 curr.sample = sampler(curr.df, num.utts, mean.utt.lens, session)
+                 session.list[[i]] = curr.sample
+        }
+    }
+    out.df = do.call(rbind, session.list)
+    return(out.df)
+}
+
+# Function to generate new utterance table from random table
+utterance.tbl = function(df.words, df.morphemes=css.morphemes, adult=F){
+    utt.df = df.words %>%
+             group_by(corpus, session_id_fk, uniquespeaker_id_fk, utterance_id_fk) %>%
+             summarize(utterance_id = utterance_id_fk %>% unique(),
+                       utterance_id_source = NA,
+                       speaker_id_fk = uniquespeaker_id_fk %>% unique(),
+                       language = corpus %>% unique(),
+                       speaker_label = NA,
+                       addressee = NA,
+                       utterance_raw = paste(word, collapse = " "),
+                       utterance = paste(word, collapse = " "),
+                       translation = NA,
+                       utterance_gloses_raw = NA,
+                       utterance_poses_raw = paste(pos_word_ud, collapse = " "),
+                       sentence_type = NA,
+                       childdirected = NA,
+                       start = NA,
+                       end = NA, 
+                       start_raw = NA,
+                       end_raw = NA,
+                       comment = NA,
+                       warning = NA) %>%
+            ungroup()
+    if(adult){
+        morph = utt.df %>%
+                group_by(corpus, session_id_fk, uniquespeaker_id_fk, utterance_id_fk) %>%
+                summarize(utterance_morphemes = NA)
+    }
+    else{
+        morph =  df.morphemes %>%
+                 group_by(corpus, session_id_fk, uniquespeaker_id_fk, utterance_id_fk) %>%
+                 summarize(utterance_morphemes = paste(morpheme, collapse = " "))
+    }
+    utt.df = left_join(utt.df, morph, by = c("corpus", "session_id_fk", "uniquespeaker_id_fk", "utterance_id_fk")) %>%
+         ungroup()
+    
+    utt.df = utt.df %>%
+             select(colnames(css.utterances)) %>%
+             arrange(corpus, utterance_id) %>%
+             as.data.frame()
+    return(utt.df)
+}
+```
