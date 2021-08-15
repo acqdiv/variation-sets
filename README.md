@@ -13,7 +13,7 @@ The **Processing** subdirectory contains all data preparation. The `processing_r
 The **Text_simulation** subdirectory covers the generation (`randomize_texts.Rmd`) and processing (`random_text_processing.Rmd`) of the randomized versions of the texts. 
 
 **3. Analysis**    
-The **Analysis** subdirectory contains the all code for the statistical analyses. 
+The **Analysis** subdirectory contains the all code for the statistical analyses. See `analysis.Rmd`.  
 
 **4. Results**    
 The **Results** subdirectory stores the plots and model summaries that are reported in the manuscript.
